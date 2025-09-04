@@ -1,10 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { APPWRITE, databases, ensureAnonSession, ID } from "@/lib/appwriteClient";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export default function CreateFoodPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-2xl py-12">Loading…</div>}>
+      <CreateFoodForm />
+    </Suspense>
+  );
+}
+
+function CreateFoodForm() {
   const router = useRouter();
   const params = useSearchParams();
   const [name, setName] = useState(params.get("name") ?? "");
