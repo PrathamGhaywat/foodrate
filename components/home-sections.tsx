@@ -36,15 +36,27 @@ export function HomeSections() {
       setLoading(true);
       setError(null);
       try {
-        // Pull a window of latest reviews to keep client work light
-        const revRes = await databases.listDocuments<Review>(
-          APPWRITE.databaseId,
-          APPWRITE.reviewCollectionId,
-          [Query.orderDesc("$createdAt"), Query.limit(200)]
-        );
+        // Fetch all reviews via cursor pagination (cap at ~1000 for safety)
+        const allReviews: Review[] = [];
+        let cursor: string | null = null;
+        const pageSize = 100;
+        for (let i = 0; i < 10; i++) { // up to 1000 reviews
+          const queries = [Query.limit(pageSize), Query.orderAsc("$id")];
+          if (cursor) queries.push(Query.cursorAfter(cursor));
+          const page = await databases.listDocuments<Review>(
+            APPWRITE.databaseId,
+            APPWRITE.reviewCollectionId,
+            queries
+          );
+          allReviews.push(...page.documents);
+          const last = page.documents.at(-1);
+          if (!last || page.documents.length < pageSize) break;
+          cursor = last.$id;
+        }
+
         if (!alive) return;
         const byFood = new Map<string, FoodStats>();
-        for (const r of revRes.documents) {
+        for (const r of allReviews) {
           if (!r.foodId) continue;
           const entry = byFood.get(r.foodId) || { foodId: r.foodId, count: 0, sum: 0, avg: 0 };
           entry.count += 1;
@@ -53,20 +65,24 @@ export function HomeSections() {
         }
         const stats = [...byFood.values()].map((s) => ({ ...s, avg: s.count ? s.sum / s.count : 0 }));
 
-        // Choose top pick: highest avg rating, tie-break by count
-        const candidates = stats.filter((s) => s.count >= 2); // require at least 2 reviews
-        candidates.sort((a, b) => (b.avg - a.avg) || (b.count - a.count));
-        const topStat = candidates[0] || stats.sort((a, b) => b.count - a.count)[0];
+        // Deterministic tie-breakers
+        const byAvgThenCount = (a: FoodStats, b: FoodStats) =>
+          b.avg - a.avg || b.count - a.count || a.foodId.localeCompare(b.foodId);
+        const byCountThenAvg = (a: FoodStats, b: FoodStats) =>
+          b.count - a.count || b.avg - a.avg || a.foodId.localeCompare(b.foodId);
 
-        // Leaderboard: top 5 by review count
-        const topN = [...stats].sort((a, b) => b.count - a.count).slice(0, 5);
+        // Top pick: best avg (min 2 reviews), tie-break by count then id; fallback to most-reviewed
+        const candidates = stats.filter((s) => s.count >= 2).sort(byAvgThenCount);
+        const topStat = candidates[0] || [...stats].sort(byCountThenAvg)[0];
+
+        // Leaderboard: top 5 by count, tie-break by avg then id
+        const topN = [...stats].sort(byCountThenAvg).slice(0, 5);
 
         const needIds = [topStat?.foodId, ...topN.map((s) => s.foodId)].filter(Boolean) as string[];
         const uniqueIds = Array.from(new Set(needIds));
 
         let foodsById = new Map<string, Food>();
         try {
-          // Try batch fetch by $id
           const foodsRes = await databases.listDocuments<Food>(
             APPWRITE.databaseId,
             APPWRITE.foodCollectionId,
@@ -75,7 +91,6 @@ export function HomeSections() {
           foodsById = new Map(foodsRes.documents.map((f) => [f.$id, f]));
         } catch (e) {
           console.warn("Batch fetch by $id unsupported, falling back to per-id fetch", e);
-          // Fallback: fetch one by one
           const fetched = await Promise.all(
             uniqueIds.map((id) => databases.getDocument<Food>(APPWRITE.databaseId, APPWRITE.foodCollectionId, id))
           );
