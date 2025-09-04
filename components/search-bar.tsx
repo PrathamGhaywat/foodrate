@@ -101,7 +101,7 @@ export function SearchBar({ className }: { className?: string }) {
           {!loading && results.map((f) => (
             <Link
               key={f.$id}
-              href={`/food/${f.$id}`}
+              href={`/food?id=${encodeURIComponent(f.$id)}`}
               className="block rounded-xl px-3 py-2 hover:bg-black/5"
             >
               {f.name}

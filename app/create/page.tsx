@@ -38,7 +38,7 @@ function CreateFoodForm() {
     setLoading(true);
     setError(null);
     try {
-      const doc = await databases.createDocument(
+  const doc = await databases.createDocument(
         APPWRITE.databaseId,
         APPWRITE.foodCollectionId,
         ID.unique(),
@@ -48,7 +48,7 @@ function CreateFoodForm() {
           description: description.trim(),
         }
       );
-      router.push(`/food/${doc.$id}`);
+  router.push(`/food?id=${encodeURIComponent(doc.$id)}`);
     } catch (e: unknown) {
       console.error(e);
       const isErr = (x: unknown): x is { message?: string } =>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SearchBar } from "@/components/search-bar";
+import { HomeSections } from "@/components/home-sections";
 
 export default function Home() {
   return (
@@ -13,6 +14,7 @@ export default function Home() {
   <div className="relative w-full max-w-xl py-10 md:py-14">
         <SearchBar />
       </div>
+  <HomeSections />
       <div className="text-sm text-muted-foreground">
         Can’t find it? {" "}
         <Link className="font-semibold underline" href="/create">
