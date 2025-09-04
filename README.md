@@ -1,3 +1,46 @@
+FoodRate
+========
+
+Cartoon-style food review app built with Next.js App Router, Tailwind, and shadcn/ui, using Appwrite Database on the client (anonymous sessions).
+
+Setup
+-----
+
+1. In Appwrite, enable CORS for your local dev URL and production domain, and allow anonymous sessions.
+2. Ensure Database and Collections exist (IDs match names as per your setup):
+   - Database: `foodrate`
+   - Collections:
+     - `food` with attributes: `name` (string, max 30), `imageUrl` (url), `description` (string, max 200)
+     - `review` with attributes: `foodId` (string), `username` (string), `review` (string, max 500), `rating` (integer 0–5)
+   - Recommended indexes: `food.name` fulltext for search; `review.foodId` for filtering.
+3. Create `.env.local` with:
+
+```
+NEXT_PUBLIC_APPWRITE_ENDPOINT=YOUR_ENDPOINT
+NEXT_PUBLIC_APPWRITE_PROJECT_ID=YOUR_PROJECT_ID
+NEXT_PUBLIC_APPWRITE_DATABASE_ID=foodrate
+NEXT_PUBLIC_APPWRITE_FOOD_COLLECTION_ID=food
+NEXT_PUBLIC_APPWRITE_REVIEW_COLLECTION_ID=review
+```
+
+Run
+---
+
+```
+npm run dev
+```
+
+Pages
+-----
+
+- `/` — search landing
+- `/create` — create a food
+- `/food/[id]` — food detail, list/add reviews
+
+Notes
+-----
+
+- This uses the browser SDK with anonymous sessions, so collection permissions must allow reads (role:all) and creation for anonymous users where applicable. Consider moderation & rate limits.
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
